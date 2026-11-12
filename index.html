@@ -36,7 +36,7 @@ input,select{background:#fff;color:#222}
 .cible{cursor:pointer;animation:pulse 1.1s ease-in-out infinite}@keyframes pulse{50%{opacity:.5}}@media(prefers-reduced-motion:reduce){.cible{animation:none}}
 </style></head><body>
 <div id="rot">📱 Tournez votre téléphone</div><div id="app"></div>
-<div id="menu" style="display:none;position:fixed;left:4px;top:70px;flex-direction:column;gap:4px;z-index:8"><button onclick="quitter()">🚪</button><button onclick="basculeChat()">💬<span id="nbchat"></span></button><button onclick="regles()">📖</button></div>
+<div id="menu" style="display:none;position:fixed;left:4px;top:70px;flex-direction:column;gap:4px;z-index:8"><button onclick="quitter()">🚪</button><button onclick="basculeChat()">💬<span id="nbchat"></span></button><button onclick="regles()">📖</button><button onclick="fermerPartie(pid)">🛑</button></div>
 <div id="chat" style="display:none;position:fixed;left:56px;bottom:60px;width:260px;background:#7a1414;border-radius:10px;padding:6px;z-index:8;box-shadow:0 4px 0 #4a0808;font-size:13px"><div id="msgs" style="max-height:28vh;overflow:auto;text-align:left"></div><input id="ci" maxlength="200" style="width:70%" placeholder="Message" onkeydown="if(event.key==='Enter')envoyerChat()"><button onclick="envoyerChat()">➤</button></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -106,19 +106,42 @@ function salon(){
   if (ecoute) ecoute.off();
   ecoute = db.ref('catan/parties'); 
   ecoute.on('value', s => {
-    const ps = s.val() || {}, ids = Object.keys(ps).filter(i => ps[i].statut !== 'terminee');
+    const ps = s.val() || {}, vieux = i => ps[i].statut === 'attente' && !ps[i].places; // salles sans aucun joueur : supprimées
+    Object.keys(ps).filter(vieux).forEach(i => db.ref('catan/parties/'+i).remove());
+    const ids = Object.keys(ps).filter(i => ps[i].statut !== 'terminee' && !vieux(i));
     const enCours = ids.find(i => ps[i].places && ps[i].places[moi] && ps[i].statut === 'en_cours');
     if (enCours && !horsPartie) { ecoute.off(); return jouer(enCours); }
     html(`<div class="carte"><h1>Salon — ${moi}</h1>
-      <div class="grille">${ids.map(i => `<button onclick="rejoindre('${i}')">Partie de ${ps[i].hote} (${Object.keys(ps[i].places||{}).length}/${ps[i].nb})</button>`).join('') || 'Aucune partie ouverte'}</div>
-      ${enCours ? `<p><button onclick="reprendre('${enCours}')">▶ Reprendre ma partie</button></p>` : ''}<p>Nombre de joueurs <select id="nb">${[3,4,5,6].map(n=>`<option>${n}</option>`).join('')}</select>
+      <div class="grille">${ids.map(i => { const en = ps[i].statut === 'en_cours', nbj = Object.keys(ps[i].places||{}).length, x = `<button style="background:#a33;color:#fff;padding:8px 6px" onclick="supprimerSalle('${i}')">✖</button>`;
+        return en ? `<span><button disabled>🎲 Partie de ${ps[i].hote} en cours (${nbj})</button>${x}</span>` : `<span><button onclick="rejoindre('${i}')">Partie de ${ps[i].hote} (${nbj}/${ps[i].nb})</button>${x}</span>`; }).join('') || 'Aucune partie ouverte'}
+      </div>
+      ${enCours ? `<p><button onclick="reprendre('${enCours}')">▶ Reprendre ma partie</button><button style="background:#a33;color:#fff" onclick="fermerPartie('${enCours}')">🛑 Fermer cette partie</button></p>` : ''}<p>Nombre de joueurs <select id="nb">${[3,4,5,6].map(n=>`<option>${n}</option>`).join('')}</select>
       <button onclick="creer()">Créer une partie</button></p>
       <p><button onclick="classement()">🏆 Classement</button><button onclick="historique()">📜 Historique</button><button onclick="choixAvatar()">🎭 Mon personnage</button></p>
       <p><button onclick="stats()">📊 Statistiques</button><button onclick="reglages()">⚙️ Réglages</button></p></div>`);
     const mienne = ids.find(i => ps[i].places && ps[i].places[moi]); if (mienne && ps[mienne].statut === 'attente') attente(mienne, ps[mienne]);
   });
 }
-function creer(){ const r = db.ref('catan/parties').push({hote:moi, nb:+nb.value, statut:'attente', places:{[moi]:{couleur:'rouge', avatar:monAvatar}}}); }
+async function creer(){ // une seule salle d'attente par joueur
+  const ps = (await db.ref('catan/parties').get()).val() || {};
+  if (Object.keys(ps).some(i => ps[i].statut === 'attente' && ps[i].places && ps[i].places[moi])) return toast('Tu es déjà dans une partie en attente');
+  db.ref('catan/parties').push({hote:moi, nb:+nb.value, statut:'attente', cree:Date.now(), places:{[moi]:{couleur:'rouge', avatar:monAvatar}}});
+}
+async function quitterAttente(id){ // l'hôte qui quitte ferme la salle ; le dernier joueur aussi
+  const p = (await db.ref('catan/parties/'+id).get()).val();
+  if (!p || p.hote === moi || Object.keys(p.places || {}).filter(j => j !== moi).length === 0) return db.ref('catan/parties/'+id).remove();
+  db.ref(`catan/parties/${id}/places/${moi}`).remove();
+}
+function supprimerSalle(id){
+  db.ref('catan/parties/'+id+'/statut').get().then(st => {
+    const en = st.val() === 'en_cours';
+    if (confirm(en ? 'Cette partie est en cours. Êtes-vous sûr de vouloir la supprimer pour tous les joueurs ? Elle ne sera pas enregistrée.' : 'Êtes-vous sûr de vouloir supprimer cette salle d\'attente ?')) { db.ref('catan/parties/'+id).remove(); db.ref('catan/presence/'+id).remove(); db.ref('catan/chats/'+id).remove(); }
+  });
+}
+function fermerPartie(id){ // ferme la partie pour tout le monde (non enregistrée)
+  if (!confirm('Fermer cette partie pour tous les joueurs ? Elle ne sera pas enregistrée.')) return;
+  db.ref('catan/parties/'+id).remove(); db.ref('catan/presence/'+id).remove(); db.ref('catan/chats/'+id).remove();
+}
 function rejoindre(i){ db.ref(`catan/parties/${i}/places/${moi}`).set({couleur:'', avatar:monAvatar}); }
 
 // ===== Salle d'attente : couleur + lancement par l'hôte =====
@@ -128,7 +151,7 @@ function attente(id, p){
     <p>${Object.entries(places).map(([j,x]) => `<span class="pastille" style="background:${COULEURS[x.couleur]||'#555'}"></span><span style="display:inline-block;vertical-align:middle">${avatarSvg(x.avatar, 22)}</span> ${j}`).join(' · ')}</p>
     <div class="grille">${Object.keys(COULEURS).map(c => `<button ${prises.includes(c)&&places[moi].couleur!==c?'disabled':''} style="background:${COULEURS[c]};color:#000" onclick="couleur('${id}','${c}')">${c}</button>`).join('')}</div>
     ${p.hote===moi ? `<button ${n<3||n!==p.nb||prises.includes('')?'disabled':''} onclick="lancer('${id}',${p.nb})">Lancer la partie</button>` : '<p>En attente de l\'hôte…</p>'}
-    <button onclick="db.ref('catan/parties/${id}/places/${moi}').remove()">Quitter</button></div>`);
+    <button onclick="quitterAttente('${id}')">Quitter</button></div>`);
 }
 function couleur(id, c){ db.ref(`catan/parties/${id}/places/${moi}/couleur`).set(c); }
 async function lancer(id, nb){ // l'hôte crée l'état de jeu ; les moutons sont tirés du paquet persistant (catan/moutons)
@@ -160,7 +183,7 @@ function jouer(id){
   ecouteP = db.ref('catan/parties/'+id);
   presRef = db.ref('catan/presence/'+id); const mien = presRef.child(moi); mien.set(true); mien.onDisconnect().remove(); // présence : disparaît si l'appareil se déconnecte
   presRef.on('value', s => { PR = s.val() || {}; verifPause(); });
-  ecouteP.on('value', s => { P = s.val(); if (P && P.etat) { G = Moteur.norm(P.etat); vue(); verifPause(); } });
+  ecouteP.on('value', s => { P = s.val(); if (!P) { horsPartie = false; return salon(); } if (P && P.etat) { G = Moteur.norm(P.etat); vue(); verifPause(); } });
   clearInterval(timer); timer = setInterval(tic, 1000);
   document.getElementById('menu').style.display = 'flex'; chatInit(id);
 }
@@ -180,7 +203,7 @@ function resteS(){ return Math.max(0, Math.ceil((G.limite - (G.pause || maintena
 function tic(){ // compte à rebours ; à zéro, n'importe quel appareil peut sauter le tour (la transaction vérifie)
   if (!G || G.phase === 'fin') return;
   const reste = resteS(), el = document.getElementById('chrono'); if (el) el.textContent = reste;
-  if (G.pause) return; // partie en pause : chrono figé
+  if (G.pause || !PR || G.ordre.some(j => !PR[j] && !(G.ecartes || {})[j])) return; // pause, ou joueur absent : aucune action automatique
   const ec = G.ecartes || {};
   if (ec[Moteur.courant(G)] || (G.phase === 'defausse' && Object.keys(G.aDefausser).some(x => ec[x]))) return agir(s => Moteur.autoEcartes(s));
   if (reste === 0) agir(s => s.limite > maintenant() ? { erreur:'' } : Moteur.sauterTour(s));
@@ -300,6 +323,7 @@ function verifPause(){
   if (!G || G.phase === 'fin' || !PR) return;
   const manque = () => G.ordre.some(j => !PR[j] && !(G.ecartes || {})[j]);
   if (manque() && !G.pause) setTimeout(() => { if (G && !G.pause && manque()) agir(s => { if (s.pause) return { erreur:'' }; s.pause = maintenant(); return { ok:true }; }, true); }, 3000);
+  if (!manque() && !G.pause && G.limite < maintenant() - 8000) agir(s => (s.pause || s.limite >= maintenant() - 8000) ? { erreur:'' } : (s.limite = maintenant() + 60000, { ok:true }), true); // chrono périmé (tout le monde était parti) : on repart pour 1 minute
   if (!manque() && G.pause) agir(s => { if (!s.pause) return { erreur:'' }; s.limite += maintenant() - s.pause; delete s.pause; return { ok:true }; }, true);
 }
 // « Continuer sans lui » (hôte) : ses pièces restent, il passe ses tours

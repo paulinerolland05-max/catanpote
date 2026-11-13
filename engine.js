@@ -152,14 +152,14 @@
     paie(s, j, COUT.dev); s.joueurs[j].devNouv.push(s.pioche.pop()); verifVictoire(s); return OK;
   }
   function jouerDev(s, j, type, arg) {
-    const p = s.joueurs[j], ok = (s.phase === 'principal' || s.phase === 'speciale' || (s.phase === 'des' && type === 'chevalier')) && courant(s) === j;
+    const p = s.joueurs[j], ok = (s.phase === 'principal' || s.phase === 'speciale' || (s.phase === 'des' && type !== 'routes')) && courant(s) === j;
     if (!ok) return err('Pas le moment'); if (s.devJoue) return err('Une carte par tour'); const i = p.dev.indexOf(type); if (i < 0) return err('Carte indisponible');
     p.dev.splice(i, 1); s.devJoue = true;
     if (type === 'chevalier') { p.chevaliers++; s.retour = s.phase; s.phase = 'voleur';
       if (p.chevaliers >= 3 && p.chevaliers > s.armee.n) s.armee = { j, n:p.chevaliers }; }
-    else if (type === 'routes') s.routesGratuites = 2;
-    else if (type === 'invention') (arg || []).slice(0, 2).forEach(r => { if (s.banque[r] > 0) { s.banque[r]--; p.res[r]++; } });
-    else if (type === 'monopole') s.ordre.forEach(x => { if (x !== j) { p.res[arg] += s.joueurs[x].res[arg]; s.joueurs[x].res[arg] = 0; } });
+    else if (type === 'routes') s.routesGratuites = Math.min(2, s.joueurs[j].pieces.route);
+    else if (type === 'invention') { if (!RES.includes((arg || [])[0]) || !RES.includes((arg || [])[1])) { p.dev.splice(i, 0, type); s.devJoue = false; return err('Choisis 2 ressources'); } arg.slice(0, 2).forEach(r => { if (s.banque[r] > 0) { s.banque[r]--; p.res[r]++; } }); }
+    else if (type === 'monopole') { if (!RES.includes(arg)) { p.dev.splice(i, 0, type); s.devJoue = false; return err('Choisis une ressource'); } s.ordre.forEach(x => { if (x !== j) { p.res[arg] += s.joueurs[x].res[arg]; s.joueurs[x].res[arg] = 0; } }); }
     verifVictoire(s); return OK;
   }
   // ---- Commerce ----
@@ -217,8 +217,9 @@
   function accepterEchange(s, j) {
     const x = s.echange; if (!x || x.de === j || s.phase !== 'principal') return err('Aucune offre');
     if (!peutPayer(s, j, x.demande)) return err('Cartes manquantes');
-    const r = echangerJoueurs(s, x.de, j, x.offre, x.demande); if (r.erreur) return r; delete s.echange; return OK;
+    const r = echangerJoueurs(s, x.de, j, x.offre, x.demande); if (r.erreur) return r; s.echAcc = { de:x.de, avec:j, offre:x.offre, demande:x.demande, ts:Date.now() }; delete s.echange; return OK;
   }
+  function finRoutes(s, j) { if (courant(s) !== j) return err('Pas votre tour'); s.routesGratuites = 0; return OK; } // abandonne les routes gratuites restantes
   function annulerEchange(s, j) { if (!s.echange || s.echange.de !== j) return err('Aucune offre'); delete s.echange; return OK; }
   // Joueur écarté (« continuer sans lui ») : ses tours sont passés et sa défausse est automatique
   function autoEcartes(s) {
@@ -226,7 +227,7 @@
     if (s.phase === 'defausse') { const l = Object.keys(s.aDefausser).filter(x => ec[x]); l.forEach(x => defausseAuto(s, x)); return l.length ? OK : err(''); }
     if (ec[courant(s)]) return sauterTour(s); return err('');
   }
-  root.Moteur = { proposerEchange, accepterEchange, annulerEchange, autoEcartes, syncMoutons, RES, COUT, topo, norm, creer, courant, pv, nbCartes, peutColonie, peutRoute, colonieInitiale, routeInitiale, lancer, defausser, defausseAuto,
+  root.Moteur = { finRoutes, proposerEchange, accepterEchange, annulerEchange, autoEcartes, syncMoutons, RES, COUT, topo, norm, creer, courant, pv, nbCartes, peutColonie, peutRoute, colonieInitiale, routeInitiale, lancer, defausser, defausseAuto,
     deplacerVoleur, construire, acheterDev, jouerDev, taux, echangerBanque, echangerJoueurs, finTour, finSpeciale, sauterTour, routeLen };
   if (typeof module !== 'undefined') module.exports = root.Moteur;
 })(typeof window !== 'undefined' ? window : this);

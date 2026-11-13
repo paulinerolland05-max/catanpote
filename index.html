@@ -4,11 +4,11 @@
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#7a1414">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>Catan Entre nous</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:"Roboto Condensed","Arial Narrow",sans-serif;font-weight:700;color:#fff}
+*{box-sizing:border-box}html,body{margin:0;height:100%;height:100dvh;font-family:"Roboto Condensed","Arial Narrow",sans-serif;font-weight:700;color:#fff}
 body{background:radial-gradient(ellipse at center,transparent 55%,rgba(40,15,0,.45) 100%),repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 130px),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.06) 1px 3px),linear-gradient(#c4742c,#a85a18);overflow:hidden}
-#app{height:100%;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:8px}
+#app{height:100%;height:100dvh;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:8px}
 h1{margin:0;font-size:26px;text-shadow:0 2px 0 #5a0d0d}
-.carte{background:#7a1414;border-radius:12px;padding:12px;box-shadow:0 4px 0 #4a0808;max-width:92vw;max-height:92vh;overflow:auto;text-align:center}
+.carte{background:#7a1414;border-radius:12px;padding:12px;box-shadow:0 4px 0 #4a0808;max-width:92vw;max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);overflow:auto;text-align:center}
 button,input,select{font:inherit;border-radius:8px;border:0;padding:8px 12px;margin:3px}
 button{background:#f2a31b;color:#3a1600;box-shadow:0 3px 0 #a86a00}button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:.35;box-shadow:none;filter:grayscale(.6)}
 input,select{background:#fff;color:#222}
@@ -30,14 +30,20 @@ input,select{background:#fff;color:#222}
 #rot{display:none;position:fixed;inset:0;background:#7a1414;z-index:9;align-items:center;justify-content:center;font-size:28px}
 @media(orientation:portrait){#rot{display:flex}}
 #plateau{width:100%;flex:1;min-height:0}
-#haut{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+#haut{display:flex;gap:3px;flex-wrap:nowrap;justify-content:center;width:100%;flex:none}
+#haut .pj{flex:1 1 0;max-width:210px;min-width:0;font-size:10px;padding:1px 4px;line-height:1.15;overflow:hidden;white-space:nowrap}
 .pj{border-radius:8px;padding:2px 7px;font-size:12px;border:2px solid #fff}
+#bas{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;align-items:center;width:100%;flex:none}
+#bas .pj{padding:1px 6px}#bas button{margin:0;padding:5px 9px;font-size:13px}
+#cote{position:fixed;right:calc(4px + env(safe-area-inset-right,0px));top:calc(4px + env(safe-area-inset-top,0px));max-height:calc(100% - 58px);width:min(290px,46vw);overflow:auto;z-index:6;padding:8px;font-size:13px}
+#cote button,#cote select{margin:2px;padding:6px 9px}
+.croix{float:right;position:sticky;top:0;z-index:3;background:#a33;color:#fff;padding:3px 10px;margin:0 0 4px 6px}
 #app.jeu{justify-content:flex-start;overflow:hidden;padding:4px;gap:4px}
 .cible{cursor:pointer;animation:pulse 1.1s ease-in-out infinite}@keyframes pulse{50%{opacity:.5}}@media(prefers-reduced-motion:reduce){.cible{animation:none}}
 </style></head><body>
 <div id="rot">📱 Tournez votre téléphone</div><div id="app"></div>
-<div id="menu" style="display:none;position:fixed;left:4px;top:70px;flex-direction:column;gap:4px;z-index:8"><button onclick="quitter()">🚪</button><button onclick="basculeChat()">💬<span id="nbchat"></span></button><button onclick="regles()">📖</button><button onclick="fermerPartie(pid)">🛑</button></div>
-<div id="chat" style="display:none;position:fixed;left:56px;bottom:60px;width:260px;background:#7a1414;border-radius:10px;padding:6px;z-index:8;box-shadow:0 4px 0 #4a0808;font-size:13px"><div id="msgs" style="max-height:28vh;overflow:auto;text-align:left"></div><input id="ci" maxlength="200" style="width:70%" placeholder="Message" onkeydown="if(event.key==='Enter')envoyerChat()"><button onclick="envoyerChat()">➤</button></div>
+<div id="menu" style="display:none;position:fixed;left:4px;top:70px;flex-direction:column;gap:4px;z-index:8"><button onclick="quitter()">🚪</button><button onclick="basculeChat()">💬<span id="nbchat"></span></button><button onclick="regles()">📖</button></div>
+<div id="chat" style="display:none;position:fixed;left:calc(56px + env(safe-area-inset-left,0px));bottom:50px;width:200px;background:#7a1414f0;border-radius:10px;padding:4px;z-index:8;box-shadow:0 3px 0 #4a0808;font-size:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span>💬 Chat</span><button onclick="basculeChat()" style="margin:0;padding:1px 8px;background:#a33;color:#fff">✖</button></div><div id="msgs" style="max-height:16vh;overflow:auto;text-align:left;font-weight:400"></div><div style="display:flex;gap:2px"><input id="ci" maxlength="200" style="flex:1;min-width:0;margin:0;padding:4px 6px;font-size:12px" placeholder="Message" onkeydown="if(event.key==='Enter')envoyerChat()"><button onclick="envoyerChat()" style="margin:0;padding:3px 8px">➤</button></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="config.js"></script><script src="board.js"></script><script src="engine.js"></script><script src="avatars.js"></script>
@@ -96,11 +102,12 @@ async function choisir(n){
 // Choix (ou changement) du personnage : enregistré sur le profil
 function choixAvatar(){
   if (ecoute) ecoute.off();
-  html(`<div class="carte"><h1>Choisis ton personnage</h1><div class="grille">${AVATARS.map(a => `<button style="width:86px;padding:6px 2px;${a.id===monAvatar?'outline:3px solid #fff':''}" onclick="setAvatar('${a.id}')"><span style="display:block;width:58px;height:58px;margin:0 auto 2px;background:#7a141477;border-radius:50%;overflow:hidden">${avatarSvg(a.id, 58)}</span>${a.nom}</button>`).join('')}</div><p><button onclick="salon()">Retour</button></p></div>`);
+  html(`<div class="carte">${croix()}<h1>Choisis ton personnage</h1><div class="grille">${AVATARS.map(a => `<button style="width:86px;padding:6px 2px;${a.id===monAvatar?'outline:3px solid #fff':''}" onclick="setAvatar('${a.id}')"><span style="display:block;width:58px;height:58px;margin:0 auto 2px;background:#7a141477;border-radius:50%;overflow:hidden">${avatarSvg(a.id, 58)}</span>${a.nom}</button>`).join('')}</div><p><button onclick="salon()">Retour</button></p></div>`);
 }
 async function setAvatar(id){ monAvatar = id; await db.ref('catan/joueurs/'+moi+'/avatar').set(id); salon(); }
 
 // ===== Salon =====
+const croix = () => '<button class="croix" onclick="salon()">✖</button>';
 function salon(){
   nettoyerPartie();
   if (ecoute) ecoute.off();
@@ -111,8 +118,8 @@ function salon(){
     const ids = Object.keys(ps).filter(i => ps[i].statut !== 'terminee' && !vieux(i));
     const enCours = ids.find(i => ps[i].places && ps[i].places[moi] && ps[i].statut === 'en_cours');
     if (enCours && !horsPartie) { ecoute.off(); return jouer(enCours); }
-    html(`<div class="carte"><h1>Salon — ${moi}</h1>
-      <div class="grille">${ids.map(i => { const en = ps[i].statut === 'en_cours', nbj = Object.keys(ps[i].places||{}).length, x = `<button style="background:#a33;color:#fff;padding:8px 6px" onclick="supprimerSalle('${i}')">✖</button>`;
+    html(`<div class="carte"><h1>Salon — ${moi}</h1><p style="margin:0;font-size:11px;opacity:.6">version 19</p>
+      <div class="grille">${ids.map(i => { const en = ps[i].statut === 'en_cours', nbj = Object.keys(ps[i].places||{}).length, x = (en ? (ps[i].places || {})[moi] : ps[i].hote === moi) ? `<button style="background:#a33;color:#fff;padding:8px 6px" onclick="supprimerSalle('${i}')">✖</button>` : '';
         return en ? `<span><button disabled>🎲 Partie de ${ps[i].hote} en cours (${nbj})</button>${x}</span>` : `<span><button onclick="rejoindre('${i}')">Partie de ${ps[i].hote} (${nbj}/${ps[i].nb})</button>${x}</span>`; }).join('') || 'Aucune partie ouverte'}
       </div>
       ${enCours ? `<p><button onclick="reprendre('${enCours}')">▶ Reprendre ma partie</button><button style="background:#a33;color:#fff" onclick="fermerPartie('${enCours}')">🛑 Fermer cette partie</button></p>` : ''}<p>Nombre de joueurs <select id="nb">${[3,4,5,6].map(n=>`<option>${n}</option>`).join('')}</select>
@@ -127,12 +134,8 @@ async function creer(){ // une seule salle d'attente par joueur
   if (Object.keys(ps).some(i => ps[i].statut === 'attente' && ps[i].places && ps[i].places[moi])) return toast('Tu es déjà dans une partie en attente');
   db.ref('catan/parties').push({hote:moi, nb:+nb.value, statut:'attente', cree:Date.now(), places:{[moi]:{couleur:'rouge', avatar:monAvatar}}});
 }
-async function quitterAttente(id){ // l'hôte qui quitte ferme la salle ; le dernier joueur aussi
-  const p = (await db.ref('catan/parties/'+id).get()).val();
-  if (!p || p.hote === moi || Object.keys(p.places || {}).filter(j => j !== moi).length === 0) return db.ref('catan/parties/'+id).remove();
-  db.ref(`catan/parties/${id}/places/${moi}`).remove();
-}
-function supprimerSalle(id){
+function quitterAttente(id){ db.ref(`catan/parties/${id}/places/${moi}`).remove(); } // un joueur libère sa place ; la salle reste ouverte
+function supprimerSalle(id){ // l'hôte ferme sa salle d'attente ; un participant peut fermer une partie en cours (avec confirmation)
   db.ref('catan/parties/'+id+'/statut').get().then(st => {
     const en = st.val() === 'en_cours';
     if (confirm(en ? 'Cette partie est en cours. Êtes-vous sûr de vouloir la supprimer pour tous les joueurs ? Elle ne sera pas enregistrée.' : 'Êtes-vous sûr de vouloir supprimer cette salle d\'attente ?')) { db.ref('catan/parties/'+id).remove(); db.ref('catan/presence/'+id).remove(); db.ref('catan/chats/'+id).remove(); }
@@ -151,7 +154,7 @@ function attente(id, p){
     <p>${Object.entries(places).map(([j,x]) => `<span class="pastille" style="background:${COULEURS[x.couleur]||'#555'}"></span><span style="display:inline-block;vertical-align:middle">${avatarSvg(x.avatar, 22)}</span> ${j}`).join(' · ')}</p>
     <div class="grille">${Object.keys(COULEURS).map(c => `<button ${prises.includes(c)&&places[moi].couleur!==c?'disabled':''} style="background:${COULEURS[c]};color:#000" onclick="couleur('${id}','${c}')">${c}</button>`).join('')}</div>
     ${p.hote===moi ? `<button ${n<3||n!==p.nb||prises.includes('')?'disabled':''} onclick="lancer('${id}',${p.nb})">Lancer la partie</button>` : '<p>En attente de l\'hôte…</p>'}
-    <button onclick="quitterAttente('${id}')">Quitter</button></div>`);
+    ${p.hote === moi ? `<button style="background:#a33;color:#fff" onclick="supprimerSalle('${id}')">Fermer la salle</button>` : `<button onclick="quitterAttente('${id}')">Quitter</button>`}</div>`);
 }
 function couleur(id, c){ db.ref(`catan/parties/${id}/places/${moi}/couleur`).set(c); }
 async function lancer(id, nb){ // l'hôte crée l'état de jeu ; les moutons sont tirés du paquet persistant (catan/moutons)
@@ -166,7 +169,7 @@ async function lancer(id, nb){ // l'hôte crée l'état de jeu ; les moutons son
 // ===== Partie : synchronisation =====
 const S = 62, RR = S/Math.sqrt(3), D6 = [[1,0],[.5,.866],[-.5,.866],[-1,0],[-.5,-.866],[.5,-.866]];
 const EM = {bois:'🌲',brique:'🧱',mouton:'🐑',ble:'🌾',minerai:'⛰️'}, NDEV = {chevalier:'Chevalier',routes:'Routes',invention:'Invention',monopole:'Monopole',pv:'Pt victoire'};
-let desVu, prevRes, volVu, choix=null, G=null, P=null, pid=null, mode=null, pan=null, sel={}, decal=0, vict=null, ecouteP=null, timer=null, args=[];
+let desVu, prevRes, volVu, echVu, infoCo = null, marquer = null, choix=null, G=null, P=null, pid=null, mode=null, pan=null, sel={}, decal=0, vict=null, ecouteP=null, timer=null, args=[];
 db.ref('.info/serverTimeOffset').on('value', s => decal = s.val() || 0);
 const maintenant = () => Date.now() + decal;
 const cleTour = s => Moteur.courant(s)+'|'+(s.setup?s.setup.i:'')+'|'+(s.speciale?s.speciale.restants.length:'')+'|'+s.tour;
@@ -179,11 +182,14 @@ function animeDes(d){
 function flotte(txt, i){ const e = document.createElement('div'); e.className = 'flotte'; e.style.left = 'calc(50% + ' + ((i - 2) * 62) + 'px)'; e.textContent = txt; document.body.appendChild(e); setTimeout(() => e.remove(), 1500); }
 function toast(m){ if(!m) return; const d=document.createElement('div'); d.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#000c;padding:6px 14px;border-radius:8px;z-index:20'; d.textContent=m; document.body.appendChild(d); setTimeout(()=>d.remove(),2000); }
 function jouer(id){
-  pid = id; volVu = desVu = prevRes = undefined; horsPartie = false; if (ecouteP) ecouteP.off(); if (presRef) presRef.off();
+  pid = id; volVu = desVu = prevRes = echVu = undefined; horsPartie = false; if (ecouteP) ecouteP.off(); if (presRef) presRef.off();
   ecouteP = db.ref('catan/parties/'+id);
-  presRef = db.ref('catan/presence/'+id); const mien = presRef.child(moi); mien.set(true); mien.onDisconnect().remove(); // présence : disparaît si l'appareil se déconnecte
+  presRef = db.ref('catan/presence/'+id); const mien = presRef.child(moi);
+  marquer = () => { mien.onDisconnect().remove(); mien.set(true); }; marquer(); // présence : disparaît si l'appareil se déconnecte, et revient à la reconnexion
+  if (infoCo) infoCo.off(); infoCo = db.ref('.info/connected'); infoCo.on('value', c => { if (c.val() === true && marquer) marquer(); });
   presRef.on('value', s => { PR = s.val() || {}; verifPause(); });
-  ecouteP.on('value', s => { P = s.val(); if (!P) { horsPartie = false; return salon(); } if (P && P.etat) { G = Moteur.norm(P.etat); vue(); verifPause(); } });
+  ecouteP.on('value', s => { P = s.val(); if (!P) { horsPartie = false; return salon(); } if (P && P.etat) { G = Moteur.norm(P.etat); vue(); verifPause();
+    if ((G.ecartes || {})[moi]) agir(x => { if (!(x.ecartes || {})[moi]) return { erreur:'' }; delete x.ecartes[moi]; return { ok:true }; }, true); } }); // de retour : on reprend sa place
   clearInterval(timer); timer = setInterval(tic, 1000);
   document.getElementById('menu').style.display = 'flex'; chatInit(id);
 }
@@ -216,6 +222,8 @@ function annulerChoix(){ choix = null; vue(); }
 function ch(i){ const t = Moteur.topo(G), vs = [...new Set(t.coins[i].map(v => G.colonies[v] && G.colonies[v].j).filter(x => x && x !== moi))];
   if (vs.length > 1) { vict = i; vue(); } else A('deplacerVoleur', i, vs[0]); }
 const setMode = m => { mode = m; pan = null; choix = null; vue(); }, setPan = p => { pan = pan === p ? null : p; args = []; vue(); };
+function jouerCarte(c, arg){ pan = null; A('jouerDev', c, arg); }
+function fermePan(){ pan = null; vue(); }
 const defAdd = r => { sel[r] = (sel[r]||0) + 1; vue(); }, defRaz = () => { sel = {}; vue(); };
 
 // ===== Partie : affichage =====
@@ -243,11 +251,16 @@ function vue(){
   if (volVu === undefined) volVu = G.vol ? G.vol.ts : 0; // annonce d'un vol de carte, vue par tous
   else if (G.vol && G.vol.ts !== volVu) { volVu = G.vol.ts; const v = G.vol, NOM = { bois:'bois', brique:'brique', mouton:'mouton', ble:'blé', minerai:'minerai' };
     annonce(!v.res ? `${v.par} n'a rien trouvé à voler chez ${v.a}` : v.par === moi ? `Tu as volé ${EM[v.res]} ${NOM[v.res]} à ${v.a}` : v.a === moi ? `${v.par} t'a volé ${EM[v.res]} ${NOM[v.res]}` : `${v.par} a volé une carte à ${v.a}`); }
+  if (echVu === undefined) echVu = G.echAcc ? G.echAcc.ts : 0;
+  else if (G.echAcc && G.echAcc.ts !== echVu) { echVu = G.echAcc.ts; const e = G.echAcc, f2 = o => Object.entries(o).map(([r, n]) => n + EM[r]).join(' ');
+    annonce(`${e.avec === moi ? 'Tu as' : e.avec + ' a'} accepté l'échange de ${e.de === moi ? 'toi' : e.de} : ${f2(e.offre)} contre ${f2(e.demande)}`); }
   const cleDes = G.des ? G.des.join('-') + '@' + G.tour + (G.speciale ? 's' : '') : '';
   if (desVu === undefined) desVu = cleDes; else if (cleDes !== desVu) { desVu = cleDes; if (G.des) animeDes(G.des); } // dés animés à chaque lancer
   const cp = pid + '|' + moi; // « +1 » flottant pour chaque ressource reçue
   if (prevRes && prevRes.cle === cp) Moteur.RES.forEach((r, i) => { const d = p.res[r] - (prevRes.res[r] || 0); if (d > 0) flotte('+' + d + ' ' + EM[r], i); });
   prevRes = { cle:cp, res:{ ...p.res } };
+  if (!mt || !['principal','speciale','des'].includes(ph)) pan = null; // plus de panneau fantôme hors de son tour
+  if (mt && G.routesGratuites > 0 && ph !== 'des') mode = 'route'; // après la carte Routes : on pose directement les routes gratuites
   if (!mt || (ph !== 'setup' && !mode)) choix = null; // pas de choix en attente hors de son tour
   let g = '<defs>' + Object.entries(DEGRADE).map(([k, [c1, c2]]) => `<radialGradient id="g_${k}" cx=".4" cy=".35" r=".85"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient>`).join('') + '</defs>';
   // mer : un cadre complet de cases de mer autour des terres
@@ -268,9 +281,9 @@ function vue(){
   const hv = hexs[G.voleur], rx = hv.x * S - (hv.jeton ? 20 : 0), ry = hv.y * S + 4; // le voleur se tient à côté du jeton
   g += `<g fill="#111" stroke="#fff" stroke-width="1"><ellipse cx="${rx}" cy="${ry + 6}" rx="7" ry="9"/><circle cx="${rx}" cy="${ry - 6}" r="5"/></g>`;
   // emplacements autorisés (discrets) ; un appui montre un aperçu à confirmer
-  const pt = (x, y, f) => `<g class="cible" onclick="${f}"><circle cx="${x}" cy="${y}" r="16" fill="transparent"/><circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#f2a31b" stroke-width="3"/></g>`;
+  const pt = (x, y, f) => `<g class="cible" onclick="${f}"><circle cx="${x}" cy="${y}" r="16" fill="transparent"/><circle cx="${x}" cy="${y}" r="13" fill="none" stroke="#fff" stroke-width="2" opacity=".8"/><circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="#f2a31b" stroke-width="3.5"/></g>`;
   const seg = (e, f) => { const a = vp[e.a], b = vp[e.b], d = (k, u, v) => (a[k] * u + b[k] * v), l = `x1="${d(0,.8,.2)}" y1="${d(1,.8,.2)}" x2="${d(0,.2,.8)}" y2="${d(1,.2,.8)}" stroke-linecap="round"`;
-    return `<g class="cible" onclick="${f}"><line ${l} stroke="transparent" stroke-width="22"/><line ${l} stroke="#fff" stroke-width="9" opacity=".85"/><line ${l} stroke="#f2a31b" stroke-width="5"/></g>`; };
+    return `<g class="cible" onclick="${f}"><line ${l} stroke="transparent" stroke-width="22"/><line ${l} stroke="#fff" stroke-width="13" opacity=".9"/><line ${l} stroke="#f2a31b" stroke-width="8"/></g>`; };
   if (mt && ph === 'setup') { if (G.setup.attend === 'colonie') t.vs.forEach((_, v) => { if (Moteur.peutColonie(G, moi, v, true)) g += pt(vp[v][0], vp[v][1], `cv(${v})`); });
     else t.edges.forEach(e => { if (Moteur.peutRoute(G, moi, e.id, G.setup.dernier)) g += seg(e, `ce('${e.id}')`); }); }
   else if (mt && ['principal','speciale'].includes(ph) && mode) {
@@ -282,19 +295,24 @@ function vue(){
     else { const [x, y] = vp[choix.id]; g += `<circle cx="${x}" cy="${y}" r="17" fill="#fff" opacity=".85"/>` + (choix.t === 'ville' ? villeSvg(x, y, col(moi)) : maison(x, y, col(moi))); } }
   const cs = hexs.map(h => [h.x, h.y]).concat([...mer.values()].map(m => [m.x, m.y])), x0 = Math.min(...cs.map(c => c[0])) * S - S/2 - 6, x1 = Math.max(...cs.map(c => c[0])) * S + S/2 + 6, y0 = Math.min(...cs.map(c => c[1])) * S - RR - 6, y1 = Math.max(...cs.map(c => c[1])) * S + RR + 6;
   const vb = `${x0} ${y0} ${x1 - x0} ${y1 - y0}`;
-  const haut = G.ordre.map(j => `<div class="pj" style="display:flex;align-items:center;gap:5px;background:${col(j)};color:${P.places[j].couleur==='blanc'?'#222':'#fff'};${j===cur?'outline:3px solid #ffd54f':''}"><span style="flex:none;width:32px;height:32px;border-radius:50%;background:#0003;overflow:hidden">${avatarSvg(P.places[j].avatar, 32)}</span><span style="line-height:1.2">${esc(j)}<br>🏆${Moteur.pv(G,j)} 🃏${Moteur.nbCartes(G.joueurs[j])} ✨${G.joueurs[j].dev.length+G.joueurs[j].devNouv.length} ⚔${G.joueurs[j].chevaliers} 🛣${Moteur.routeLen(G,j)}<br><small>Reste : ━${(G.joueurs[j].pieces||{}).route}  🏠${(G.joueurs[j].pieces||{}).colonie}  🏰${(G.joueurs[j].pieces||{}).ville}</small></span></div>`).join('');
+  const haut = G.ordre.map(j => `<div class="pj" style="display:flex;align-items:center;gap:5px;background:${col(j)};color:${P.places[j].couleur==='blanc'?'#222':'#fff'};${j===cur?'outline:3px solid #ffd54f':''}"><span style="flex:none;width:26px;height:26px;border-radius:50%;background:#0003;overflow:hidden">${avatarSvg(P.places[j].avatar, 26)}</span><span style="line-height:1.2">${esc(j)}<br>🏆${Moteur.pv(G,j) - (j === moi || G.phase === 'fin' ? 0 : G.joueurs[j].dev.concat(G.joueurs[j].devNouv).filter(c => c === 'pv').length)} 🃏${Moteur.nbCartes(G.joueurs[j])} ✨${G.joueurs[j].dev.length+G.joueurs[j].devNouv.length} ⚔${G.joueurs[j].chevaliers}<br><span style="opacity:.9">🛣${Moteur.routeLen(G,j)} ━${(G.joueurs[j].pieces||{}).route} 🏠${(G.joueurs[j].pieces||{}).colonie} 🏰${(G.joueurs[j].pieces||{}).ville}</span></span></div>`).join('');
   const msg = ph==='fin' ? `🏆 ${G.vainqueur} gagne !` : `${G.speciale ? 'Phase de construction de ' + cur + ' (jumelé au tour de ' + G.ordre[G.tour] + ')' : 'Au tour de ' + cur}${G.des && !G.speciale?' · 🎲 '+G.des[0]+' + '+G.des[1]+' = '+(G.des[0]+G.des[1]):''} · <span id="chrono">${resteS()}</span> s`;
   const bouton = (txt, f) => `<button onclick="${f}">${txt}</button>`;
-  let bas = Moteur.RES.map(r => `<span class="pj" style="background:#4a0808">${EM[r]} ${p.res[r]}</span>`).join('') + `<span class="pj" style="background:#4a0808">🃏 ${p.dev.map(c=>NDEV[c]).concat(p.devNouv.map(c=>NDEV[c]+'*')).join(', ') || '—'}</span>`;
+  const consigne = !mt ? '' : ph === 'setup' ? (G.setup.attend === 'colonie' ? '👉 Pose ta colonie : touche un point qui clignote' : '👉 Pose ta route à côté de ta colonie : touche un trait qui clignote')
+    : ph === 'des' ? '👉 Lance les dés' : ph === 'voleur' ? '👉 Déplace le voleur : touche une case' : '';
+  const consigneHtml = consigne ? `<div class="pj" style="background:#2e7d32;font-size:13px;padding:2px 12px;flex:none">${consigne}</div>` : '';
+  let bas = Moteur.RES.map(r => `<span class="pj" style="background:#4a0808">${EM[r]} ${p.res[r]}</span>`).join('') + `<span class="pj" style="background:#4a0808">🃏 ${(g2 => Object.entries(g2).map(([k, n]) => k + (n > 1 ? ' ×' + n : '')).join(', '))(p.dev.map(c => NDEV[c]).concat(p.devNouv.map(c => NDEV[c] + '*')).reduce((a, k) => (a[k] = (a[k] || 0) + 1, a), {})) || '—'}</span>`;
   const ms = G.moutons || {}; ((ms.mains || {})[moi] || []).forEach(id => { const c = (ms.noms || {})[id]; if (c) bas += `<span class="pj" style="background:#f2a31b;color:#3a1600">🐑 ${esc(c.nom)} (${esc(c.date)})</span>`; });
-  if (mt && ph === 'des') bas += bouton('🎲 Lancer les dés', "A('lancer')");
-  if (mt && ['principal','speciale'].includes(ph)) bas += bouton('🔨 Construire', "setPan('c')") + bouton('🔄 Échanger', "setPan('e')") + bouton('🃏 Jouer une carte', "setPan('d')") + (ph==='principal' ? bouton('⏭ Fin de tour', "A('finTour')") : bouton('⏭ Fin de ma phase', "A('finSpeciale')"));
-  if (mt && ph === 'des' && p.dev.includes('chevalier')) bas += bouton('⚔ Chevalier', "A('jouerDev','chevalier')");
+  if (mt && ph === 'des') bas += bouton('🎲 Lancer les dés', "A('lancer')") + bouton('🃏 Carte', "setPan('d')");
+  if (mt && ['principal','speciale'].includes(ph)) bas += bouton('🔨 Construire', "setPan('c')") + bouton('🔄 Échanger', "setPan('e')") + bouton('🃏 Carte', "setPan('d')") + (ph==='principal' ? bouton('⏭ Fin de tour', "A('finTour')") : bouton('⏭ Fin de ma phase', "A('finSpeciale')"));
   const sl = (id, opts) => `<select id="${id}">${opts.map(o => `<option value="${o}">${EM[o]||o}</option>`).join('')}</select>`;
   let pop = '';
   if (pan === 'c') pop = `<b>Construire</b><br>${bouton('Route 🌲🧱', "setMode('route')")}${bouton('Colonie 🌲🧱🐑🌾', "setMode('colonie')")}${bouton('Ville 🌾🌾⛰️⛰️⛰️', "setMode('ville')")}${bouton('Carte dév. 🐑🌾⛰️', "A('acheterDev');setPan('c')")}`;
   if (pan === 'e') pop = `<b>Banque</b> (${Moteur.RES.map(r => EM[r] + Moteur.taux(G, moi, r) + ':1').join(' ')})<br>Je donne ${sl('dn', Moteur.RES)} je reçois ${sl('rc', Moteur.RES)} ${bouton('Échanger', "A('echangerBanque',dn.value,rc.value)")}${ph === 'principal' ? `<hr><b>Proposer aux joueurs</b><br>Je donne : ${Moteur.RES.map(r => `<button onclick="tAdd('o','${r}')">${EM[r]} ${tO[r]||0}</button>`).join('')}<br>Je veux : ${Moteur.RES.map(r => `<button onclick="tAdd('d','${r}')">${EM[r]} ${tD[r]||0}</button>`).join('')}<br><button onclick="tRaz()">Effacer</button>${bouton('Proposer', 'proposer()')}` : '<br><i>Pas d\'échange avec les joueurs pendant ta phase jumelée</i>'}`;
-  if (pan === 'd') pop = `<b>Carte</b><br>${['chevalier','routes'].filter(c=>p.dev.includes(c)).map(c => bouton(NDEV[c], `A('jouerDev','${c}');setPan('d')`)).join('')}${p.dev.includes('invention') ? 'Invention : '+sl('i1',Moteur.RES)+sl('i2',Moteur.RES)+bouton('OK', "A('jouerDev','invention',[i1.value,i2.value]);setPan('d')") : ''}${p.dev.includes('monopole') ? 'Monopole : '+sl('mo',Moteur.RES)+bouton('OK', "A('jouerDev','monopole',mo.value);setPan('d')") : ''}`;
+  if (pan === 'd') { const dispo = c => p.dev.includes(c) && !(ph === 'des' && c === 'routes'), liste = [...['chevalier','routes'].filter(dispo).map(c => bouton(NDEV[c], `jouerCarte('${c}')`)),
+      ...(dispo('invention') ? ['Invention : ' + sl('i1', Moteur.RES) + sl('i2', Moteur.RES) + bouton('OK', "jouerCarte('invention',[i1.value,i2.value])")] : []),
+      ...(dispo('monopole') ? ['Monopole : ' + sl('mo', Moteur.RES) + bouton('OK', "jouerCarte('monopole',mo.value)")] : [])];
+    pop = `<b>Jouer une carte</b><br>${G.devJoue ? 'Une carte déjà jouée ce tour.' : liste.join('<br>') || 'Aucune carte jouable'}${p.devNouv.length ? '<br><i style="font-weight:400">* carte achetée ce tour : jouable au prochain</i>' : ''}`; }
   if (ph === 'defausse' && G.aDefausser[moi]) { const n = G.aDefausser[moi], tot = Object.values(sel).reduce((a,b)=>a+b,0);
     pop = `<b>🃏 ${esc(moi)}, un 7 a été lancé : défaussez ${n} cartes</b><br><span style="font-size:1.1em">Choisies ${tot}/${n}${tot<n?' — encore '+(n-tot)+' à choisir':' ✔ prêt, appuie sur Valider'}</span><br>${Moteur.RES.map(r => `<button onclick="defAdd('${r}')" ${(sel[r]||0)>=p.res[r]?'disabled':''}>${EM[r]} ${sel[r]||0}/${p.res[r]}</button>`).join('')}<br>${bouton('Effacer', 'defRaz()')}<button style="${tot===n?'background:#3fa34d;color:#fff':''}" ${tot!==n?'disabled':''} onclick="A('defausser',sel);sel={}">Valider</button>`; }
   if (vict !== null) pop = `<b>Voler à qui ?</b><br>${[...new Set(Moteur.topo(G).coins[vict].map(v => G.colonies[v] && G.colonies[v].j).filter(x => x && x !== moi))].map(j => bouton(j, `A('deplacerVoleur',${vict},'${j}');vict=null`)).join('')}`;
@@ -304,14 +322,18 @@ function vue(){
   const pc = p.pieces || { route:15, colonie:5, ville:4 }, fm = col(moi); // pièces restantes, rangées sur le côté
   const stock = `<div id="stock"><div><svg width="36" height="14"><line x1="5" y1="7" x2="31" y2="7" stroke="#000" stroke-width="11" stroke-linecap="round"/><line x1="5" y1="7" x2="31" y2="7" stroke="${fm}" stroke-width="7" stroke-linecap="round"/></svg><b>${pc.route}/15</b></div><div><svg viewBox="0 0 28 28" width="28" height="28">${maison(14, 16, fm)}</svg><b>${pc.colonie}/5</b></div><div><svg viewBox="0 0 28 30" width="28" height="30">${villeSvg(14, 20, fm)}</svg><b>${pc.ville}/4</b></div></div>`;
   const manquants = G.ordre.filter(j => PR && !PR[j] && !(G.ecartes || {})[j]), fmt = o => Object.entries(o).map(([r, n]) => n + EM[r]).join(' ');
-  const bandeau = G.pause ? `<div style="background:#c62828;padding:4px 10px;border-radius:8px">⏸ Partie en pause — ${manquants.map(esc).join(', ') || 'reprise…'} déconnecté(e)${P.hote === moi ? ' ' + manquants.map(x => bouton('Continuer sans ' + esc(x), `ecarter('${x}')`)).join('') : ''}</div>` : '';
+  const chef = PR && PR[P.hote] ? P.hote : (G.ordre.find(j => PR && PR[j]) || P.hote), bandeau = G.pause ? `<div style="background:#c62828;padding:4px 10px;border-radius:8px">⏸ Partie en pause — ${manquants.map(esc).join(', ') || 'reprise…'} déconnecté(e)${chef === moi ? ' ' + manquants.map(x => bouton('Continuer sans ' + esc(x), `ecarter('${x}')`)).join('') : ''}</div>` : '';
+  const aucuneRoute = t.edges.every(e => !Moteur.peutRoute(G, moi, e.id)), routesHtml = mt && G.routesGratuites > 0 ? `<div class="pj" style="background:#2e7d32">🛣 Carte Routes : pose ${G.routesGratuites} route(s) gratuite(s)${aucuneRoute ? ' — aucun emplacement possible' : ''} ${bouton('Terminer', "A('finRoutes')")}</div>` : '';
+  const popPan = ['c','e','d'].includes(pan) && !choix && vict === null && ph !== 'fin' && !(ph === 'defausse' && G.aDefausser[moi]);
   const x = G.echange; let offreHtml = '';
   if (x && ph === 'principal') offreHtml = x.de === moi ? `<div class="pj" style="background:#4a0808">Votre offre : ${fmt(x.offre)} contre ${fmt(x.demande)} ${bouton('Annuler', "A('annulerEchange')")}</div>`
     : (refuses[x.ts] ? '' : `<div class="pj" style="background:#4a0808">${esc(x.de)} propose : il donne ${fmt(x.offre)} contre ${fmt(x.demande)} ${bouton('Accepter', "A('accepterEchange')")}${bouton('Refuser', `refuser(${x.ts})`)}</div>`);
-  html(`<div id="haut">${haut}</div>${bandeau}<div style="font-size:15px">${msg}</div>${offreHtml}<svg id="plateau" viewBox="${vb}">${g}</svg>
+  html(`<div id="haut">${haut}</div>${bandeau}<div style="font-size:13px;flex:none">${msg}</div>${consigneHtml}${routesHtml}${offreHtml}<svg id="plateau" viewBox="${vb}">${g}</svg>
     ${stock}
-    ${pop ? `<div class="carte" style="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:5">${pop}</div>` : ''}
-    <div id="haut">${bas}</div>`); app.className = 'jeu';
+    ${!pop ? '' : choix ? `<div class="carte" style="position:fixed;left:50%;bottom:50px;transform:translateX(-50%);z-index:7;padding:6px 10px">${pop}</div>`
+      : ph === 'fin' ? `<div class="carte" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9">${pop}</div>`
+      : `<div id="cote" class="carte">${popPan ? '<button class="croix" onclick="fermePan()">✖</button>' : ''}${pop}</div>`}
+    <div id="bas">${bas}</div>`); app.className = 'jeu';
 }
 // ===== Échange, pause, quitter, chat =====
 let tO = {}, tD = {}, refuses = {}, PR = null, presRef = null, chatRef = null, vus = -1, nMsg = 0, horsPartie = false;
@@ -328,9 +350,10 @@ function verifPause(){
 }
 // « Continuer sans lui » (hôte) : ses pièces restent, il passe ses tours
 function ecarter(x){ if (confirm('Continuer sans ' + x + ' ?')) agir(s => { s.ecartes = s.ecartes || {}; s.ecartes[x] = true; return { ok:true }; }, true); }
+try { document.addEventListener('visibilitychange', () => { if (!document.hidden && marquer) marquer(); }); window.addEventListener('online', () => { if (marquer) marquer(); }); } catch (e) {} // retour au premier plan / réseau retrouvé : on se déclare de nouveau présent
 function nettoyerPartie(){ // quitte proprement la partie (présence, écoutes, menu, chat)
   clearInterval(timer); if (ecouteP) ecouteP.off(); if (presRef) { if (moi) presRef.child(moi).remove(); presRef.off(); } if (chatRef) chatRef.off();
-  presRef = chatRef = ecouteP = null; G = P = PR = null;
+  if (infoCo) infoCo.off(); infoCo = marquer = null; presRef = chatRef = ecouteP = null; G = P = PR = null;
   document.getElementById('menu').style.display = 'none'; document.getElementById('chat').style.display = 'none';
 }
 function quitter(){ if (confirm('Voulez-vous retourner au menu principal ?')) { horsPartie = true; salon(); } }
@@ -370,14 +393,14 @@ async function stats(){
   const moy = H.length ? Math.round(H.reduce((a, g) => a + g.duree, 0) / H.length / 60000) : 0, longue = H.length ? Math.round(Math.max(...H.map(g => g.duree)) / 60000) : 0;
   const duo = {}; H.forEach(g => { if (g.vainqueur) duo[g.vainqueur] = (duo[g.vainqueur]||0) + 1; });
   const roi = Object.entries(duo).sort((a, b) => b[1] - a[1])[0];
-  html(`<div class="carte"><h1>📊 Statistiques</h1>
+  html(`<div class="carte">${croix()}<h1>📊 Statistiques</h1>
     <p><b>Groupe</b> : ${H.length} partie(s) · durée moyenne ${moy} min · la plus longue ${longue} min${roi ? ' · le plus de victoires : 🏆 '+esc(roi[0])+' ('+roi[1]+')' : ''}</p>
     <p><b>${esc(moi)}</b> : ${mine.pj} partie(s) · ${mine.v} victoire(s) · ${mine.pj ? Math.round(100*mine.v/mine.pj) : 0} %${fav ? ' · couleur la plus jouée : <span class="pastille" style="background:'+COULEURS[fav[0]]+'"></span>'+esc(fav[0]) : ''} · 🐑 moutons nommés : ${mine.mo}</p>
     <button onclick="salon()">Retour</button></div>`);
 }
 function reglages(){
   if (ecoute) ecoute.off();
-  html(`<div class="carte"><h1>⚙️ Réglages</h1><p>Profil de cet appareil : <b>${esc(moi)}</b></p>
+  html(`<div class="carte">${croix()}<h1>⚙️ Réglages</h1><p>Profil de cet appareil : <b>${esc(moi)}</b></p>
     <p><button onclick="choixAvatar()">🎭 Changer de personnage</button></p>
     <p><button onclick="profils()">👤 Changer de profil</button></p>
     <p><button onclick="regles()">📖 Règles</button></p>
@@ -390,14 +413,14 @@ async function classement(){
   [...C.JOUEURS, ...Object.keys(J)].forEach(n => st[n] = { n, pj:0, v:0 });
   Object.values(H).forEach(g => Object.keys(g.joueurs).forEach(n => { const x = st[n] = st[n] || { n, pj:0, v:0 }; x.pj++; if (g.vainqueur === n) x.v++; }));
   const l = Object.values(st).filter(x => archives || !(J[x.n] && J[x.n].archive)).map(x => ({ ...x, pts:x.pj + 3*x.v, pc:x.pj ? Math.round(100*x.v/x.pj) : 0 })).sort((a, b) => b.pts - a.pts || b.v - a.v || a.n.localeCompare(b.n));
-  html(`<div class="carte"><h1>🏆 Classement</h1><table style="border-collapse:collapse;margin:auto"><tr><th>#</th><th></th><th>Joueur</th><th>Parties</th><th>Vict.</th><th>%</th><th>Points</th></tr>
+  html(`<div class="carte">${croix()}<h1>🏆 Classement</h1><table style="border-collapse:collapse;margin:auto"><tr><th>#</th><th></th><th>Joueur</th><th>Parties</th><th>Vict.</th><th>%</th><th>Points</th></tr>
     ${l.map((x, i) => `<tr><td>${i+1}</td><td>${avatarSvg(J[x.n] && J[x.n].avatar, 26)}</td><td>${esc(x.n)}${J[x.n] && J[x.n].archive ? ' 🗄' : ''}</td><td>${x.pj}</td><td>${x.v}</td><td>${x.pc}%</td><td>${x.pts}</td></tr>`).join('')}</table>
     <p><label><input type="checkbox" ${archives?'checked':''} onchange="archives=this.checked;classement()"> Afficher les archivés</label></p><button onclick="salon()">Retour</button></div>`);
 }
 async function historique(){
   if (ecoute) ecoute.off();
   const H = (await db.ref('catan/historique').get()).val() || {}, ids = Object.keys(H).sort((a, b) => H[b].date - H[a].date);
-  html(`<div class="carte" style="width:90vw"><h1>📜 Historique</h1>${ids.map(i => { const g = H[i]; return `<p style="margin:6px 0;border-bottom:1px solid #fff4">${new Date(g.date).toLocaleDateString('fr-FR')} · ${Math.round(g.duree/60000)} min · 
+  html(`<div class="carte" style="width:90vw">${croix()}<h1>📜 Historique</h1>${ids.map(i => { const g = H[i]; return `<p style="margin:6px 0;border-bottom:1px solid #fff4">${new Date(g.date).toLocaleDateString('fr-FR')} · ${Math.round(g.duree/60000)} min · 
     ${Object.entries(g.joueurs).map(([n, c]) => `<span class="pastille" style="background:${COULEURS[c]}"></span>${n === g.vainqueur ? '🏆' : ''}${esc(n)}`).join(' ')}
     ${g.mouton ? ' · 🐑 '+esc(g.mouton.nom) : ''} <button onclick="corriger('${i}')">✏️</button><button onclick="annuler('${i}')">❌</button></p>`; }).join('') || 'Aucune partie'}<button onclick="salon()">Retour</button></div>`);
 }

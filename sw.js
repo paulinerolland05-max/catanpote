@@ -1,5 +1,5 @@
 // Service worker : l'application fonctionne hors réseau, mais charge toujours la version la plus récente quand il y a du réseau
-const C = 'catan-v17', F = ['./', 'index.html', 'board.js', 'engine.js', 'config.js', 'avatars.js', 'manifest.json'];
+const C = 'catan-v19', F = ['./', 'index.html', 'board.js', 'engine.js', 'config.js', 'avatars.js', 'manifest.json'];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(F.map(u => new Request(u, { cache: 'reload' }))))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

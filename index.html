@@ -118,18 +118,21 @@ function salon(){
     const ids = Object.keys(ps).filter(i => ps[i].statut !== 'terminee' && !vieux(i));
     const enCours = ids.find(i => ps[i].places && ps[i].places[moi] && ps[i].statut === 'en_cours');
     if (enCours && !horsPartie) { ecoute.off(); return jouer(enCours); }
-    html(`<div class="carte"><h1>Salon — ${moi}</h1><p style="margin:0;font-size:11px;opacity:.6">version 19</p>
+    const miAtt = horsAttente ? ids.find(i => ps[i].statut === 'attente' && ps[i].places && ps[i].places[moi]) : null;
+    html(`<div class="carte"><h1>Salon — ${moi}</h1><p style="margin:0;font-size:11px;opacity:.6">version 20</p>
       <div class="grille">${ids.map(i => { const en = ps[i].statut === 'en_cours', nbj = Object.keys(ps[i].places||{}).length, x = (en ? (ps[i].places || {})[moi] : ps[i].hote === moi) ? `<button style="background:#a33;color:#fff;padding:8px 6px" onclick="supprimerSalle('${i}')">✖</button>` : '';
         return en ? `<span><button disabled>🎲 Partie de ${ps[i].hote} en cours (${nbj})</button>${x}</span>` : `<span><button onclick="rejoindre('${i}')">Partie de ${ps[i].hote} (${nbj}/${ps[i].nb})</button>${x}</span>`; }).join('') || 'Aucune partie ouverte'}
       </div>
+      ${miAtt ? `<p><button style="background:#3fa34d;color:#fff" onclick="retourAttente()">▶ Retourner à ma salle d'attente (${ps[miAtt].hote} ${Object.keys(ps[miAtt].places).length}/${ps[miAtt].nb})</button></p>` : ''}
       ${enCours ? `<p><button onclick="reprendre('${enCours}')">▶ Reprendre ma partie</button><button style="background:#a33;color:#fff" onclick="fermerPartie('${enCours}')">🛑 Fermer cette partie</button></p>` : ''}<p>Nombre de joueurs <select id="nb">${[3,4,5,6].map(n=>`<option>${n}</option>`).join('')}</select>
       <button onclick="creer()">Créer une partie</button></p>
       <p><button onclick="classement()">🏆 Classement</button><button onclick="historique()">📜 Historique</button><button onclick="choixAvatar()">🎭 Mon personnage</button></p>
       <p><button onclick="stats()">📊 Statistiques</button><button onclick="reglages()">⚙️ Réglages</button></p></div>`);
-    const mienne = ids.find(i => ps[i].places && ps[i].places[moi]); if (mienne && ps[mienne].statut === 'attente') attente(mienne, ps[mienne]);
+    const mienne = ids.find(i => ps[i].places && ps[i].places[moi]); if (mienne && ps[mienne].statut === 'attente' && !horsAttente) attente(mienne, ps[mienne]);
   });
 }
 async function creer(){ // une seule salle d'attente par joueur
+  horsAttente = false;
   const ps = (await db.ref('catan/parties').get()).val() || {};
   if (Object.keys(ps).some(i => ps[i].statut === 'attente' && ps[i].places && ps[i].places[moi])) return toast('Tu es déjà dans une partie en attente');
   db.ref('catan/parties').push({hote:moi, nb:+nb.value, statut:'attente', cree:Date.now(), places:{[moi]:{couleur:'rouge', avatar:monAvatar}}});
@@ -145,7 +148,9 @@ function fermerPartie(id){ // ferme la partie pour tout le monde (non enregistr�
   if (!confirm('Fermer cette partie pour tous les joueurs ? Elle ne sera pas enregistrée.')) return;
   db.ref('catan/parties/'+id).remove(); db.ref('catan/presence/'+id).remove(); db.ref('catan/chats/'+id).remove();
 }
-function rejoindre(i){ db.ref(`catan/parties/${i}/places/${moi}`).set({couleur:'', avatar:monAvatar}); }
+function rejoindre(i){ horsAttente = false; db.ref(`catan/parties/${i}/places/${moi}`).get().then(x => { if (!x.exists()) db.ref(`catan/parties/${i}/places/${moi}`).set({couleur:'', avatar:monAvatar}); else salon(); }); }
+function menuAttente(){ horsAttente = true; salon(); } // retour au menu en gardant sa place dans la salle d'attente
+function retourAttente(){ horsAttente = false; salon(); }
 
 // ===== Salle d'attente : couleur + lancement par l'hôte =====
 function attente(id, p){
@@ -154,6 +159,8 @@ function attente(id, p){
     <p>${Object.entries(places).map(([j,x]) => `<span class="pastille" style="background:${COULEURS[x.couleur]||'#555'}"></span><span style="display:inline-block;vertical-align:middle">${avatarSvg(x.avatar, 22)}</span> ${j}`).join(' · ')}</p>
     <div class="grille">${Object.keys(COULEURS).map(c => `<button ${prises.includes(c)&&places[moi].couleur!==c?'disabled':''} style="background:${COULEURS[c]};color:#000" onclick="couleur('${id}','${c}')">${c}</button>`).join('')}</div>
     ${p.hote===moi ? `<button ${n<3||n!==p.nb||prises.includes('')?'disabled':''} onclick="lancer('${id}',${p.nb})">Lancer la partie</button>` : '<p>En attente de l\'hôte…</p>'}
+    ${p.hote===moi && (n<3||n!==p.nb||prises.includes('')) ? `<p style="font-size:12px;margin:2px">Pour lancer : la salle doit être pleine (${n}/${p.nb}) et chacun doit avoir choisi sa couleur.</p>` : ''}
+    <button onclick="menuAttente()">↩ Menu</button>
     ${p.hote === moi ? `<button style="background:#a33;color:#fff" onclick="supprimerSalle('${id}')">Fermer la salle</button>` : `<button onclick="quitterAttente('${id}')">Quitter</button>`}</div>`);
 }
 function couleur(id, c){ db.ref(`catan/parties/${id}/places/${moi}/couleur`).set(c); }
@@ -169,7 +176,7 @@ async function lancer(id, nb){ // l'hôte crée l'état de jeu ; les moutons son
 // ===== Partie : synchronisation =====
 const S = 62, RR = S/Math.sqrt(3), D6 = [[1,0],[.5,.866],[-.5,.866],[-1,0],[-.5,-.866],[.5,-.866]];
 const EM = {bois:'🌲',brique:'🧱',mouton:'🐑',ble:'🌾',minerai:'⛰️'}, NDEV = {chevalier:'Chevalier',routes:'Routes',invention:'Invention',monopole:'Monopole',pv:'Pt victoire'};
-let desVu, prevRes, volVu, echVu, infoCo = null, marquer = null, choix=null, G=null, P=null, pid=null, mode=null, pan=null, sel={}, decal=0, vict=null, ecouteP=null, timer=null, args=[];
+let horsAttente = false, desVu, prevRes, volVu, echVu, infoCo = null, marquer = null, choix=null, G=null, P=null, pid=null, mode=null, pan=null, sel={}, decal=0, vict=null, ecouteP=null, timer=null, args=[];
 db.ref('.info/serverTimeOffset').on('value', s => decal = s.val() || 0);
 const maintenant = () => Date.now() + decal;
 const cleTour = s => Moteur.courant(s)+'|'+(s.setup?s.setup.i:'')+'|'+(s.speciale?s.speciale.restants.length:'')+'|'+s.tour;

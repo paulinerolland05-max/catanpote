@@ -164,7 +164,7 @@
   }
   // ---- Commerce ----
   function taux(s, j, r) { let t = 4; const ports = topo(s); s.plateau.ports.forEach(q => { const c = ports.coins[q.hex];
-    [c[(q.dir+5)%6], c[q.dir]].forEach(v => { if (s.colonies[v] && s.colonies[v].j === j) { if (q.type === r) t = Math.min(t, 2); else if (q.type === 'generique') t = Math.min(t, 3); } }); }); return t; }
+    [c[(q.dir+5)%6], c[q.dir]].forEach(v => { if (s.colonies[v] && s.colonies[v].j === j) { if (TERRAIN[q.type] === r) t = Math.min(t, 2); else if (q.type === 'generique') t = Math.min(t, 3); } }); }); return t; }
   function echangerBanque(s, j, donne, recoit) {
     if (!['principal','speciale'].includes(s.phase) || courant(s) !== j || donne === recoit) return err('Échange impossible'); // le joueur jumelé peut échanger avec la banque, pas avec les joueurs
     const t = taux(s, j, donne); if (s.joueurs[j].res[donne] < t) return err('Pas assez de cartes'); if (s.banque[recoit] < 1) return err('Banque vide');

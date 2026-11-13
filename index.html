@@ -22,8 +22,8 @@ input,select{background:#fff;color:#222}
 #charge .loader i{width:20px;height:23px;background:#f2a31b;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);animation:hexp .9s ease-in-out infinite}
 #charge .loader i:nth-child(2){animation-delay:.15s}#charge .loader i:nth-child(3){animation-delay:.3s}
 @keyframes hexp{50%{transform:scale(.55);opacity:.5}}
-.flotte{position:fixed;bottom:60px;transform:translateX(-50%);font-size:20px;font-weight:700;color:#fff;text-shadow:0 2px 0 #000,0 0 6px #000;pointer-events:none;z-index:15;animation:monte 1.4s ease-out forwards}
-@keyframes monte{from{opacity:1;margin-bottom:0}to{opacity:0;margin-bottom:46px}}
+.flotte{position:fixed;bottom:60px;transform:translateX(-50%);font-size:20px;font-weight:700;color:#fff;text-shadow:0 2px 0 #000,0 0 6px #000;pointer-events:none;z-index:15;animation:monte 3.4s ease-out forwards}
+@keyframes monte{0%{opacity:1;margin-bottom:0}70%{opacity:1}100%{opacity:0;margin-bottom:46px}}
 @media(prefers-reduced-motion:reduce){.flotte{animation:none}#charge .loader i{animation:none}}
 #stock{position:fixed;right:calc(4px + env(safe-area-inset-right,0px));top:70px;display:flex;flex-direction:column;gap:6px;align-items:center;background:#4a0808cc;border:2px solid #fff;border-radius:10px;padding:4px 6px;font-size:12px;z-index:4}
 #stock div{display:flex;flex-direction:column;align-items:center;line-height:1.1}
@@ -119,7 +119,7 @@ function salon(){
     const enCours = ids.find(i => ps[i].places && ps[i].places[moi] && ps[i].statut === 'en_cours');
     if (enCours && !horsPartie) { ecoute.off(); return jouer(enCours); }
     const miAtt = horsAttente ? ids.find(i => ps[i].statut === 'attente' && ps[i].places && ps[i].places[moi]) : null;
-    html(`<div class="carte"><h1>Salon — ${moi}</h1><p style="margin:0;font-size:11px;opacity:.6">version 20</p>
+    html(`<div class="carte"><h1>Salon — ${moi}</h1><p style="margin:0;font-size:11px;opacity:.6">version 21</p>
       <div class="grille">${ids.map(i => { const en = ps[i].statut === 'en_cours', nbj = Object.keys(ps[i].places||{}).length, x = (en ? (ps[i].places || {})[moi] : ps[i].hote === moi) ? `<button style="background:#a33;color:#fff;padding:8px 6px" onclick="supprimerSalle('${i}')">✖</button>` : '';
         return en ? `<span><button disabled>🎲 Partie de ${ps[i].hote} en cours (${nbj})</button>${x}</span>` : `<span><button onclick="rejoindre('${i}')">Partie de ${ps[i].hote} (${nbj}/${ps[i].nb})</button>${x}</span>`; }).join('') || 'Aucune partie ouverte'}
       </div>
@@ -184,9 +184,9 @@ function annonce(m){ const d = document.createElement('div'); d.style.cssText = 
 function animeDes(d){
   const el = document.createElement('div'); el.style.cssText = 'position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);display:flex;gap:10px;z-index:18;pointer-events:none'; let n = 0;
   const tick = () => { el.innerHTML = [0, 1].map(i => '<div style="width:54px;height:54px;border-radius:10px;background:#f3e6c0;color:#222;font-size:34px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #0007;transform:rotate(' + Math.round(Math.random() * 30 - 15) + 'deg)">' + (n < 8 ? 1 + Math.floor(Math.random() * 6) : d[i]) + '</div>').join(''); n++; };
-  tick(); document.body.appendChild(el); const t = setInterval(() => { tick(); if (n > 8) clearInterval(t); }, 80); setTimeout(() => el.remove(), 2200);
+  tick(); document.body.appendChild(el); const t = setInterval(() => { tick(); if (n > 8) clearInterval(t); }, 80); setTimeout(() => el.remove(), 4500);
 }
-function flotte(txt, i){ const e = document.createElement('div'); e.className = 'flotte'; e.style.left = 'calc(50% + ' + ((i - 2) * 62) + 'px)'; e.textContent = txt; document.body.appendChild(e); setTimeout(() => e.remove(), 1500); }
+function flotte(txt, i){ const e = document.createElement('div'); e.className = 'flotte'; e.style.left = 'calc(50% + ' + ((i - 2) * 62) + 'px)'; e.textContent = txt; document.body.appendChild(e); setTimeout(() => e.remove(), 3600); }
 function toast(m){ if(!m) return; const d=document.createElement('div'); d.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#000c;padding:6px 14px;border-radius:8px;z-index:20'; d.textContent=m; document.body.appendChild(d); setTimeout(()=>d.remove(),2000); }
 function jouer(id){
   pid = id; volVu = desVu = prevRes = echVu = undefined; horsPartie = false; if (ecouteP) ecouteP.off(); if (presRef) presRef.off();
@@ -322,7 +322,8 @@ function vue(){
     pop = `<b>Jouer une carte</b><br>${G.devJoue ? 'Une carte déjà jouée ce tour.' : liste.join('<br>') || 'Aucune carte jouable'}${p.devNouv.length ? '<br><i style="font-weight:400">* carte achetée ce tour : jouable au prochain</i>' : ''}`; }
   if (ph === 'defausse' && G.aDefausser[moi]) { const n = G.aDefausser[moi], tot = Object.values(sel).reduce((a,b)=>a+b,0);
     pop = `<b>🃏 ${esc(moi)}, un 7 a été lancé : défaussez ${n} cartes</b><br><span style="font-size:1.1em">Choisies ${tot}/${n}${tot<n?' — encore '+(n-tot)+' à choisir':' ✔ prêt, appuie sur Valider'}</span><br>${Moteur.RES.map(r => `<button onclick="defAdd('${r}')" ${(sel[r]||0)>=p.res[r]?'disabled':''}>${EM[r]} ${sel[r]||0}/${p.res[r]}</button>`).join('')}<br>${bouton('Effacer', 'defRaz()')}<button style="${tot===n?'background:#3fa34d;color:#fff':''}" ${tot!==n?'disabled':''} onclick="A('defausser',sel);sel={}">Valider</button>`; }
-  if (vict !== null) pop = `<b>Voler à qui ?</b><br>${[...new Set(Moteur.topo(G).coins[vict].map(v => G.colonies[v] && G.colonies[v].j).filter(x => x && x !== moi))].map(j => bouton(j, `A('deplacerVoleur',${vict},'${j}');vict=null`)).join('')}`;
+  if (vict !== null && (ph !== 'voleur' || Moteur.courant(G) !== moi)) vict = null; // évite un choix « Voler à qui ? » resté affiché
+  if (vict !== null) pop = `<b>Voler à qui ?</b><br>${[...new Set(Moteur.topo(G).coins[vict].map(v => G.colonies[v] && G.colonies[v].j).filter(x => x && x !== moi))].map(j => bouton(j, `vict=null;A('deplacerVoleur',${vict},'${j}')`)).join('')}`;
   if (choix) pop = `<b>Poser ici ?</b><br>${bouton('✔ Confirmer', 'confirmer()')}${bouton('✖ Annuler', 'annulerChoix()')}`;
   if (ph === 'fin') pop = (G.vainqueur === moi && !P.moutonFait) ? `<h1>🏆 Bravo !</h1>Nomme ton mouton (optionnel)<br><input id="mn" maxlength="30" placeholder="Nom du mouton"><br>${bouton('Nommer', 'nommer(mn.value)')}${bouton('Passer', "nommer('')")}` : `<h1>🏆 ${esc(G.vainqueur)}</h1>${bouton('Retour au salon', 'salon()')}`;
   if (ph === 'fin' && P.statut !== 'terminee') enregistrer();
